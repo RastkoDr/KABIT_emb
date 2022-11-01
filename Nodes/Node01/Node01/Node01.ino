@@ -10,6 +10,8 @@
 #define DHTTYPE DHT11
 #define DHTPIN 12
 
+#define PUMPPIN 13
+
 #define TEMPTIME 10000
 
 /*
@@ -24,6 +26,9 @@
 
 DHT dht(DHTPIN, DHTTYPE);
 unsigned long dhtTimer = millis();
+
+int lastTemp = 0;
+int lastSet = 0;
 
 char* mqttServer = "10.6.60.51";
 int mqttPort = 1883;
@@ -43,6 +48,9 @@ void setup() {
   WiFiManager wifiManager;
   
   dht.begin();
+  
+  pinMode(PUMPPIN, OUTPUT);
+
 
   WiFiManagerParameter mqttserver_text_box("key_text", "MQTT Broker Adresa", mqttServer, 50);
 
@@ -85,6 +93,7 @@ void setup() {
   client.subscribe("led-dnevna");  
   client.subscribe("led-kupatilo");
 
+  client.subscribe("set-temp1");
 }
 
 void callback(char* topic, byte* payload, unsigned int length) {
@@ -126,6 +135,13 @@ void callback(char* topic, byte* payload, unsigned int length) {
     Serial.print("Set lights to: ");
     Serial.println(i_payload);
   }
+  else if(strcmp(topic, "set-temp1") == 0)
+  {
+    int i_payload = atoi(s_payload);
+    lastSet = i_payload;
+    Serial.print("Set temp to: ");
+    Serial.println(i_payload);
+  }
  
 }
 
@@ -134,6 +150,7 @@ void loop() {
   {
     float t = dht.readTemperature();
     char s_temp[64] = "";
+    lastTemp = (int)t;
     itoa(t, s_temp, 10);
     if(t != 2147483647)
     {
@@ -142,6 +159,14 @@ void loop() {
     Serial.println(t);
     }
     Serial.println(s_temp);
+    if(lastTemp < lastSet)
+    {
+      digitalWrite(PUMPPIN, HIGH);
+    }
+    else
+    {
+      digitalWrite(PUMPPIN, LOW);
+    }
 
     dhtTimer = millis();
   }

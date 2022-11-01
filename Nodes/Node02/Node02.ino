@@ -15,7 +15,10 @@
 #define DHTPIN 14
 #define DHTPIN1 12
 
+#define PUMPPIN 13
+
 #define TEMPTIME 10000
+
 
 /*
   led-stepenice LEDPIN2 D8
@@ -30,6 +33,9 @@
 DHT dht(DHTPIN, DHTTYPE);
 DHT dht1(DHTPIN1, DHTTYPE);
 unsigned long dhtTimer = millis();
+
+int lastTemp = 0;
+int lastSet = 0;
 
 char* mqttServer = "10.6.60.51";
 int mqttPort = 1883;
@@ -52,8 +58,7 @@ void setup() {
   dht.begin();
   dht1.begin();
 
-  pinMode(13, INPUT);
-  if(digitalRead(13)) forceConfig = true;
+  pinMode(PUMPPIN, OUTPUT);
 
   WiFiManagerParameter mqttserver_text_box("key_text", "MQTT Broker Adresa", mqttServer, 50);
 
@@ -95,6 +100,8 @@ void setup() {
   client.subscribe("led-soba1");  
   client.subscribe("led-soba2");
 
+  client.subscribe("set-temp2");
+  
   lcd.init();
   lcd.clear();         
   lcd.backlight();
@@ -146,6 +153,13 @@ void callback(char* topic, byte* payload, unsigned int length) {
     Serial.print("Set lights to: ");
     Serial.println(i_payload);
   }
+  else if(strcmp(topic, "set-temp2") == 0)
+  {
+    int i_payload = atoi(s_payload);
+    lastSet = i_payload;
+    Serial.print("Set temp to: ");
+    Serial.println(i_payload);
+  }
  
 }
 
@@ -155,6 +169,7 @@ void loop() {
     float t = dht.readTemperature();
     char s_temp[64] = "";
     itoa(t, s_temp, 10);
+    lastTemp = (int)t;
     if(t != 2147483647)
     {
     client.publish("dht-sprat1", s_temp);
@@ -162,6 +177,14 @@ void loop() {
     Serial.println(t);
     }
     Serial.println(s_temp);
+    if(lastTemp < lastSet)
+    {
+      digitalWrite(PUMPPIN, HIGH);
+    }
+    else
+    {
+      digitalWrite(PUMPPIN, LOW);
+    }
     
     t = dht1.readTemperature();
     char s_temp1[64] = "";    
