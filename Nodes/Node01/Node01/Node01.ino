@@ -14,6 +14,8 @@
 
 #define TEMPTIME 10000
 
+#define RESTARTPIN 14
+
 /*
   led-hodnik LEDPIN2 D8
   led-dnevna LEDPIN D4
@@ -26,6 +28,7 @@
 
 DHT dht(DHTPIN, DHTTYPE);
 unsigned long dhtTimer = millis();
+unsigned long resTimer = millis();
 
 int lastTemp = 0;
 int lastSet = 0;
@@ -50,7 +53,8 @@ void setup() {
   dht.begin();
   
   pinMode(PUMPPIN, OUTPUT);
-
+  pinMode(RESTARTPIN, OUTPUT);
+  digitalWrite(RESTARTPIN, HIGH);
 
   WiFiManagerParameter mqttserver_text_box("key_text", "MQTT Broker Adresa", mqttServer, 50);
 
@@ -94,6 +98,8 @@ void setup() {
   client.subscribe("led-kupatilo");
 
   client.subscribe("set-temp1");
+
+  client.subscribe("status-check");
 }
 
 void callback(char* topic, byte* payload, unsigned int length) {
@@ -142,6 +148,12 @@ void callback(char* topic, byte* payload, unsigned int length) {
     Serial.print("Set temp to: ");
     Serial.println(i_payload);
   }
+  else if(strcmp(topic, "status-check") == 0)
+  {
+    Serial.print("Last status");
+    Serial.println(millis()-resTimer);
+    resTimer = millis();
+  }
  
 }
 
@@ -154,9 +166,9 @@ void loop() {
     itoa(t, s_temp, 10);
     if(t != 2147483647)
     {
-    client.publish("dht-prizemlje", s_temp);
-    Serial.print("published prizemlje: ");
-    Serial.println(t);
+      client.publish("dht-prizemlje", s_temp);
+      //Serial.print("published prizemlje: ");
+      //Serial.println(t);
     }
     Serial.println(s_temp);
     if(lastTemp < lastSet)
@@ -167,8 +179,13 @@ void loop() {
     {
       digitalWrite(PUMPPIN, LOW);
     }
-
+    digitalWrite(RESTARTPIN, HIGH);        
     dhtTimer = millis();
+  }
+  if(millis() - resTimer > TEMPTIME*2)
+  {
+    digitalWrite(RESTARTPIN, LOW);
+    resTimer = millis();
   }
   client.loop();
 }

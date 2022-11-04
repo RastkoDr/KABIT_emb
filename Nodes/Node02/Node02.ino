@@ -172,9 +172,9 @@ void loop() {
     lastTemp = (int)t;
     if(t != 2147483647)
     {
-    client.publish("dht-sprat1", s_temp);
-    Serial.print("published dht-sprat1: ");
-    Serial.println(t);
+      client.publish("dht-sprat1", s_temp);
+      //Serial.print("published dht-sprat1: ");
+      //Serial.println(t);
     }
     Serial.println(s_temp);
     if(lastTemp < lastSet)
@@ -192,11 +192,11 @@ void loop() {
     if(t != 2147483647)
     {
       client.publish("dht-spolja", s_temp1);
-      Serial.print("published dht-spolja: ");
-      Serial.println(t);
+      //Serial.print("published dht-spolja: ");
+      //Serial.println(t);
     }
-    Serial.println(s_temp1);
-    
+    //Serial.println(s_temp1);
+    client.publish("status-check", "1");
     dhtTimer = millis();
   }
   client.loop();
