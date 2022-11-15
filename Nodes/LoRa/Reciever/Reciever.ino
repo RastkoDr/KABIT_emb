@@ -16,10 +16,11 @@
   led-dnevna LEDPIN D4
   led-kupatilo LEDPIN1 D3
 */
-#define ss 5
-#define rst 14
-#define dio0 2
+#define ss 4
+#define rst 5
+#define dio0 -1
 
+bool check = true;
 
 char* mqttServer = "10.6.60.51";
 int mqttPort = 1883;
@@ -37,7 +38,8 @@ void setup() {
   Serial.begin(115200);
 
   while (!Serial);
-    WiFiManager wifiManager;
+  
+  WiFiManager wifiManager;
 
 
   WiFiManagerParameter mqttserver_text_box("key_text", "MQTT Broker Adresa", mqttServer, 50);
@@ -75,7 +77,7 @@ void setup() {
 
     }
   }
-      
+   
 
   Serial.println("LoRa Receiver");
   LoRa.setPins(ss, rst, dio0);
@@ -100,15 +102,15 @@ void callback(char* topic, byte* payload, unsigned int length) {
 void loop() {
   int packetSize = LoRa.parsePacket();
   if (packetSize) { 
-    Serial.print("Received packet '");
+    Serial.print("Received packet ");
 
-    char message[64] = "";
     while (LoRa.available()) {
-      int temp = (int)LoRa.read();
-      itoa(temp,message,10);
-    
-    }
-    client.publish("lora-reciever-temp",message);
+      if(check)
+        client.publish("lora-reciever-temp", LoRa.readString().c_str());
+      else if(!check)
+        client.publish("lora-reciever-hum", LoRa.readString().c_str());
+      check = !check;
+    }   
   }
   client.loop();
 }
